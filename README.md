@@ -157,8 +157,107 @@ docker rm nginx1
   The container should run in the background.
 
     ``` bash
+    docker run -d -e MYSQL_ROOT_PASSWORD=P4sSw0rd0! -v ~/my_executables/docker/mysql_data:/var/lib/mysql --name app-database mysql    
+    ```
 
-    docker run -d -e MYSQL_ROOT_PASSWORD=P4sSw0rd0! -v ~/my_executables/docker/mysql_data:/var/lib/mysql --name app-database mysql    ```
+## lab 2
 
+### problem 1
 
+- Create your own nginx docker image based on ubuntu “NEVER USE FROM nginx”
+  - Install nginx
+  - Two index.html one as file and another as .tar "/var/www/html"
+  - Expose
+  - Start
+  - Port mapping
 
+  ``` bash
+  #Dockerfile using index.html
+  FROM ubuntu:20.04
+  RUN apt-get update && apt-get install nginx -y
+  EXPOSE 80
+  ADD index.html /var/www/html
+  CMD ["nginx", "-g", "daemon off;"]
+  #Dockerfile using var.tar
+  FROM ubuntu:20.04
+  RUN apt-get update && apt-get install nginx -y
+  EXPOSE 80
+  ADD index.tar /var/www/html
+  RUN command
+  CMD ["nginx", "-g", "daemon off;"]
+  #terminal 
+  docker build -t custom-nginx:1.0 .
+  docker run -it -p 7070:80 --name mynginx11 custom-nginx:1.0
+
+  ```
+
+### problem 2
+
+- Create react app docker container "using single stage, Multi-Stage Dockerfile"
+
+  ``` bash
+  # Single stage:
+  FROM node:18.12.1-alpine
+  RUN apk update
+  RUN apk add nodejs
+  RUN apk add npm
+  WORKDIR /app
+  COPY package.json .
+  RUN npm install
+  COPY . .
+  RUN npm run build
+  EXPOSE 3000
+  CMD ["npm", "start"]
+
+  # Multi stage:
+  # Stage 1: Build the application
+  FROM node:18.12.1-alpine as build
+  RUN apk update
+  RUN apk add nodejs
+  RUN apk add npm
+  WORKDIR /app
+  COPY package.json .
+  RUN npm install
+  COPY . .
+  RUN npm run build
+
+  # Stage 2: Run the built application
+  FROM node:18.12.1-alpine
+  RUN apk update
+  RUN apk add nodejs
+  RUN apk add npm
+  WORKDIR /app
+  COPY --from=build /app/build .
+  EXPOSE 3000
+  CMD ["npm", "start"]
+  ```
+
+### problem 3
+
+- What is the rest of Docker Networks ? “Name and Definition”
+
+  - macvlan: This network type allows you to assign a MAC address to a container and connect it directly to the physical network. This allows the container to appear as a physical device on the network and be assigned a unique IP address by the network's DHCP server.
+
+  - network_mode: service:<service name>: This network type allows you to connect a container to the network of an existing Docker service. The container can communicate with other containers in the service's network using their service names.
+
+  - network_mode: container:<container name>: This network type allows you to connect a container to the network of an existing Docker container. The container can communicate with other containers in the same network using their container names.
+
+  - network_mode: host: This network type allows you to connect a container directly to the host machine's network interface, similar to the host network type. However, unlike the host network type, which creates a new network namespace for the container, the network_mode: host network type shares the host machine's network namespace with the container.
+   
+  - user-defined networks: In addition to the built-in network types, you can also create your own user-defined networks in Docker. You can create a user-defined network using the docker network create command and then use the --network flag to connect a container to the network.
+
+### problem 4
+
+- Create your bridge network, two containers from ubuntu image with different names and try to ping each other using NAME.
+
+  ``` bash
+  docker network create nasr-network
+  docker run -id --name ubuntu1 --network nasr-network ubuntu
+  docker run -id --name ubuntu2 --network nasr-network ubuntu
+  docker exec -it ubuntu1 bash
+  # inside ubuntu1 & ubuntu1
+    apt update
+    apt install inetutils-ping
+    ping ubuntu2 #ping ubuntu1 from ubuntu2
+  ```
+  
