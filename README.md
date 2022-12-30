@@ -198,38 +198,28 @@ docker rm nginx1
   ``` bash
   # Single stage:
   FROM node:18.12.1-alpine
-  RUN apk update
+  RUN apk update 
   RUN apk add nodejs
-  RUN apk add npm
-  WORKDIR /app
-  COPY package.json .
-  RUN npm install
-  COPY . .
-  RUN npm run build
-  EXPOSE 3000
+  RUN apk add npm 
+  RUN npx create-react-app my-app
+  WORKDIR /my-app
   CMD ["npm", "start"]
+  EXPOSE 3000
 
-  # Multi stage:
-  # Stage 1: Build the application
-  FROM node:18.12.1-alpine as build
-  RUN apk update
-  RUN apk add nodejs
-  RUN apk add npm
+  # Multi stage
+  # Build source code stage
+  FROM node:alpine3.16 As build
   WORKDIR /app
-  COPY package.json .
+  COPY package*.json ./
   RUN npm install
   COPY . .
   RUN npm run build
 
-  # Stage 2: Run the built application
-  FROM node:18.12.1-alpine
-  RUN apk update
-  RUN apk add nodejs
-  RUN apk add npm
-  WORKDIR /app
-  COPY --from=build /app/build .
-  EXPOSE 3000
-  CMD ["npm", "start"]
+  # Deploy stage
+  FROM nginx:alpine
+  COPY --from=build /app/build /usr/share/nginx/html
+  EXPOSE 80
+  ENTRYPOINT [ "nginx","-g","daemon off;" ]
   ```
 
 ### problem 3
@@ -255,9 +245,62 @@ docker rm nginx1
   docker run -id --name ubuntu1 --network nasr-network ubuntu
   docker run -id --name ubuntu2 --network nasr-network ubuntu
   docker exec -it ubuntu1 bash
-  # inside ubuntu1 & ubuntu1
+  # inside ubuntu1 & ubuntu2
     apt update
     apt install inetutils-ping
     ping ubuntu2 #ping ubuntu1 from ubuntu2
   ```
-  
+
+## lab 3
+
+### problem 1
+
+- Convert the created react app multi-stage docker image into compose format
+
+``` bash
+  version: '3.8'
+  services:
+    my-react-container:
+      container_name: my-react-container
+      build:
+        context: .
+        dockerfile: Dockerfile
+      image: my-react-app:1.0
+      ports: 
+        - "3388:80"
+```
+
+### problem 2
+
+- Create flask app to count number of visits to browser:
+  - Create new directory called flask then add app.py and requirements.txt files
+  - Create Dockerfile for the python app
+  - Create docker-compose for the app and use Redis as temp DB.
+
+``` bash
+# Dockerfile
+  FROM python:3.8-alpine
+  WORKDIR /app
+  COPY requirements.txt .
+  RUN pip install -r requirements.txt 
+  COPY . .
+  CMD [ "python","app.py" ]
+
+# docker-compose.yml
+  version: '3.8'
+  services:
+    redis: 
+      image: redis:alpine
+    flask-app:
+      build: 
+        context: .
+        dockerfile: Dockerfile
+      image: flask-app-img
+      ports:
+        - 8888:8000
+      depends_on:
+        - redis    
+ 
+
+
+```
