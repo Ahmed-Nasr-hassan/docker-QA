@@ -258,6 +258,23 @@ docker rm nginx1
 - Convert the created react app multi-stage docker image into compose format
 
 ``` bash
+  # Dockerfile
+  # Build source code stage
+  FROM node:alpine3.16 As build
+  WORKDIR /app
+  COPY package*.json ./
+  RUN npm install
+  COPY . .
+  RUN npm run build
+
+  #deploy stage
+  FROM nginx:alpine
+  COPY --from=build /app/build /usr/share/nginx/html
+  EXPOSE 80
+  ENTRYPOINT [ "nginx","-g","daemon off;" ]
+
+
+  # docker-compose.yml
   version: '3.8'
   services:
     my-react-container:
